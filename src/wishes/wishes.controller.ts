@@ -70,8 +70,8 @@ export class WishesController {
 
   @UseGuards(JwtGuard)
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.wishesService.removeOne({ where: { id } });
+  remove(@Req() req, @Param('id', ParseIntPipe) id: number) {
+    return this.wishesService.removeOne(req.user.id, { where: { id } });
   }
 
   @UseGuards(JwtGuard)

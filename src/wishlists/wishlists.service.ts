@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -63,11 +64,14 @@ export class WishlistsService {
     return await this.wishlistRepository.save(wishlist);
   }
 
-  async removeOne(id: number) {
-    const wishlist = await this.findOne(id);
+  async removeOne(userId: number, wishlistId: number) {
+    const wishlist = await this.findOne(wishlistId);
     if (!wishlist) {
       throw new NotFoundException('Нет такого вишлиста');
     }
-    return await this.wishlistRepository.delete(id);
+    if (wishlist.owner.id !== userId) {
+      throw new ForbiddenException('Нельзя удалять чужие списки');
+    }
+    return await this.wishlistRepository.delete(wishlistId);
   }
 }

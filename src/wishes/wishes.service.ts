@@ -1,4 +1,8 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 import { CreateWishDto } from './dto/create-wish.dto';
 import { UpdateWishDto } from './dto/update-wish.dto';
 import { Wish } from './entities/wish.entity';
@@ -47,17 +51,30 @@ export class WishesService {
 
   async updateOne(query: FindOneOptions<Wish>, updateWishDto: UpdateWishDto) {
     const wish = await this.findOne(query);
+    if (updateWishDto.price && wish.raised > 0) {
+      throw new ForbiddenException(
+        'Вы не можете изменять стоимость подарка, если уже есть желающие скинуться',
+      );
+    }
     return await this.wishesRepository.update({ id: wish.id }, updateWishDto);
   }
 
-  async removeOne(query: FindOneOptions<Wish>) {
+  async removeOne(userId: number, query: FindOneOptions<Wish>) {
     const wish = await this.findOne(query);
+    if (wish.owner.id !== userId) {
+      throw new ForbiddenException('Нельзя удалять чужие подарки!');
+    }
     return await this.wishesRepository.delete({ id: wish.id });
   }
 
   async copyWish(username, wishId) {
     const wish = await this.findOne({ where: { id: wishId } });
     const newOwner = await this.usersService.findByUsername(username);
+
+    if (wish.owner.id === newOwner.id) {
+      throw new ForbiddenException('Вы уже копировали этот подарок!');
+    }
+
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();

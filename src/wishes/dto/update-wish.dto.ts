@@ -7,5 +7,5 @@ export class UpdateWishDto {
 
   @IsNumber()
   @IsOptional()
-  copied?: number;
+  price?: number;
 }

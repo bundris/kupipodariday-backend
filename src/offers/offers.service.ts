@@ -4,7 +4,6 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { CreateOfferDto } from './dto/create-offer.dto';
-import { UpdateOfferDto } from './dto/update-offer.dto';
 import { DataSource, FindOneOptions, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Offer } from './entities/offer.entity';
@@ -58,7 +57,7 @@ export class OffersService {
     return await this.offerRepository.findOne(query);
   }
 
-  async findById(id) {
+  async findById(id: number) {
     return await this.findOne({
       where: { id },
       relations: {
@@ -70,21 +69,5 @@ export class OffersService {
 
   async findByUser(username: string) {
     return await this.userService.findOffers(username);
-  }
-
-  async updateOne(
-    query: FindOneOptions<Offer>,
-    updateOfferDto: UpdateOfferDto,
-  ) {
-    const offer = await this.findOne(query);
-    return await this.offerRepository.update(
-      { id: offer.id },
-      { ...updateOfferDto },
-    );
-  }
-
-  async removeOne(query) {
-    const offer = await this.findOne(query);
-    return this.offerRepository.delete({ id: offer.id });
   }
 }

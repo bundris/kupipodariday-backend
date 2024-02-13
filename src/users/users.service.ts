@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -19,7 +20,10 @@ export class UsersService {
   ) {}
   async create(createUserDto: CreateUserDto) {
     const user = await this.usersRepository.findOne({
-      where: [{ email: createUserDto.email }],
+      where: [
+        { email: createUserDto.email },
+        { username: createUserDto.username },
+      ],
     });
     if (user) {
       throw new ConflictException('Пользователь уже существует');
@@ -95,10 +99,31 @@ export class UsersService {
     return user.offers;
   }
 
+  async HasUsernameOrEmail(updateUserDto: UpdateUserDto) {
+    const q = [];
+    if (updateUserDto.username) {
+      q.push({ username: updateUserDto.username });
+    }
+    if (updateUserDto.email) {
+      q.push({ email: updateUserDto.email });
+    }
+    if (q.length === 0) {
+      return false;
+    }
+    const usersToCheck = await this.findMany({ where: q });
+    return usersToCheck.length > 0;
+  }
+
   async updateOne(query: FindOneOptions<User>, updateUserDto: UpdateUserDto) {
     const user = await this.findOne(query);
     if (!user) {
       throw new NotFoundException('Нет пользователя, которого хотим обновить');
+    }
+    const hasUsers = await this.HasUsernameOrEmail(updateUserDto);
+    if (hasUsers) {
+      throw new ForbiddenException(
+        'Пользователь с таким email или username уже существует в системе',
+      );
     }
     const hashedDto = await this.hashService.hashDtoPassword(updateUserDto);
     return await this.usersRepository.update({ id: user.id }, hashedDto);
@@ -106,12 +131,5 @@ export class UsersService {
 
   async updateUser(username: string, updateUserDto: UpdateUserDto) {
     return this.updateOne({ where: { username } }, updateUserDto);
-  }
-  async removeOne(query: FindOneOptions<User>) {
-    const user = await this.findOne(query);
-    if (!user) {
-      throw new NotFoundException('Нет пользователя, которого хотим удалить');
-    }
-    return await this.usersRepository.delete({ id: user.id });
   }
 }
